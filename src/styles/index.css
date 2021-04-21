@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.custom-input {
+  @apply rounded text-white bg-gray-800 outline-none px-2 py-0.5;
+}
+
+.btn-primary {
+  @apply rounded text-white bg-gray-800 px-2 py-0.5 transition-all transform hover:scale-95 outline-none;
+}
+
+.link-route {
+  @apply bg-gray-900 text-white py-2 text-center w-full uppercase;
+}

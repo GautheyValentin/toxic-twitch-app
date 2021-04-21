@@ -1,0 +1,11 @@
+{
+  "extends": ["airbnb-typescript"],
+  "ignorePatterns": "*.js",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "rules": {
+    "jsx-a11y/label-has-associated-control": [0],
+    "no-underscore-dangle": [0]
+  }
+}
