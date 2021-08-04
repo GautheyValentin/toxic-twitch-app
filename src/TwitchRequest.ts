@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'crypto';
 import { ICustomReward, IRedeem } from './interfaces';
 
 const TWITCH_API = 'https://gql.twitch.tv/gql';
@@ -90,9 +91,6 @@ class TwitchRequest {
   }
 
   public async RedeemReward(redeem: IRedeem): Promise<void> {
-    const requestId: string | null = await this.UpdateRequestId();
-    if (!requestId) return;
-
     await axios.post(
       TWITCH_API,
       [
@@ -101,7 +99,7 @@ class TwitchRequest {
           variables: {
             input: {
               channelID: this.channelId,
-              transactionID: requestId,
+              transactionID: crypto.randomBytes(32).toString('hex'),
               ...redeem,
             },
           },

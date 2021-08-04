@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import TwitchRequest from '../TwitchRequest';
 import { GetAuthorization, GetClientId } from '../utils/storage';
 import Reward from './Reward';
@@ -29,6 +29,8 @@ const ChannelRewardsView = ({ channel }: { channel: string }) => {
 
   const [rewards, setRewards] = useState<ICustomReward[]>([]);
 
+  const [numberOfRequest, setNumberOfRequest] = useState<number>();
+
   const refreshRewards = async () => {
     const data = await twitch.GetRedemption();
     setRewards(data.rewards);
@@ -40,6 +42,10 @@ const ChannelRewardsView = ({ channel }: { channel: string }) => {
 
   useEffect(() => {
     refreshRewards();
+    const refInterval = setInterval(refreshRewards, 2000);
+    return () => {
+      clearInterval(refInterval);
+    };
   }, [twitch]);
 
   const sortTable = (localRewards: ICustomReward[]) => {
@@ -57,21 +63,29 @@ const ChannelRewardsView = ({ channel }: { channel: string }) => {
     }
   };
 
-  const rClick = async (rewardId: string) => {
+  const rClick = (rewardId: string) => {
     const reward: any | undefined = rewards.find((value: ICustomReward) => value.id === rewardId);
-
     if (!reward) return;
 
-    await twitch.RedeemReward({
-      rewardID: rewardId,
-      title: reward.title,
-      cost: reward.cost,
-    });
+    for (let i = 0; i < (numberOfRequest || 1); i += 1) {
+      twitch.RedeemReward({
+        rewardID: rewardId,
+        title: reward.title,
+        cost: reward.cost,
+      });
+    }
   };
 
   return (
     <>
       <div className="flex w-full justify-end space-x-4">
+        <input
+          className="bg-gray-800 text-white border-none"
+          type="number"
+          value={numberOfRequest}
+          placeholder="Number of request"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setNumberOfRequest(Number(e.target.value))}
+        />
         <button type="button" onClick={() => setSort(SORT.NAME)} className="btn-primary">
           <Name width="20" height="20" />
         </button>
@@ -85,6 +99,7 @@ const ChannelRewardsView = ({ channel }: { channel: string }) => {
       <div className="flex flex-wrap w-full mt-10">
         {sortTable(rewards).map((v: ICustomReward) => (
           <Reward
+            id={v.id}
             key={v.id}
             reward={v}
             onClick={rClick}

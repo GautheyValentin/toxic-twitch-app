@@ -26,7 +26,7 @@ export const RemoveChannels = (channel: string): string[] => {
 
 export const GetClientId = (): string => localStorage.getItem(STORAGE.CLIENT_ID) || '';
 
-export const GetAuthorization = (): string => localStorage.getItem(STORAGE.AUTHORIZATION) || '';
+export const GetAuthorization = (): string => `OAuth ${localStorage.getItem(STORAGE.AUTHORIZATION) || ''}`;
 
 export const SetClientId = (id: string) => localStorage.setItem(STORAGE.CLIENT_ID, id);
 
