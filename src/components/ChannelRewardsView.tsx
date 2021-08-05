@@ -72,6 +72,7 @@ const ChannelRewardsView = ({ channel }: { channel: string }) => {
         rewardID: rewardId,
         title: reward.title,
         cost: reward.cost,
+        prompt: reward.prompt,
       });
     }
   };

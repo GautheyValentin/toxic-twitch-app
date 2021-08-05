@@ -46,4 +46,5 @@ export interface IRedeem {
   cost: number;
   title: string;
   textInput?: string;
+  prompt?: string;
 }
