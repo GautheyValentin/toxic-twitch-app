@@ -1,59 +1,66 @@
 import React, { ChangeEvent, useEffect, useState } from 'react';
-import TwitchRequest from '../TwitchRequest';
-import { GetAuthorization, GetClientId } from '../utils/storage';
 import Reward from './Reward';
-import { ReactComponent as Name } from '../assets/signature-solid.svg';
-import { ReactComponent as Money } from '../assets/money-bill-wave-solid.svg';
-import { ReactComponent as Refresh } from '../assets/redo-solid.svg';
-import { ICustomReward } from '../interfaces';
+import { IReward, User } from '@redux/types/app.types';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  getRewardsTwitch,
+  redeemRewardTwitch,
+} from '@redux/slices/twitch.slice';
+import { RootState } from '@redux/store';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faA, faMoneyBill, faRefresh } from '@fortawesome/free-solid-svg-icons';
 
 enum SORT {
-  NONE = 'NONE',
-  PRICE = 'PRICE',
-  PRICE_REVERSE = 'PRICE',
-  NAME = 'NAME',
-  NAME_REVERSE = 'NAME_REVERSE',
+  NONE = `NONE`,
+  PRICE = `PRICE`,
+  PRICE_REVERSE = `PRICE`,
+  NAME = `NAME`,
+  NAME_REVERSE = `NAME_REVERSE`,
 }
 
-const ChannelRewardsView = ({ channel }: { channel: string }) => {
-  const getTwitch = () => new TwitchRequest(channel, {
-    headers: {
-      'Client-ID': GetClientId(),
-      Authorization: GetAuthorization(),
-    },
-  });
-
-  const [sort, setSort] = useState<SORT>(SORT.NONE);
-
-  const [twitch, setTwitch] = useState(getTwitch());
-
-  const [rewards, setRewards] = useState<ICustomReward[]>([]);
-
-  const [numberOfRequest, setNumberOfRequest] = useState<number>();
-
-  const refreshRewards = async () => {
-    const data = await twitch.GetRedemption();
-    setRewards(data.rewards);
-  };
+const ChannelRewardsView = ({
+  channel,
+  user,
+}: {
+  channel: string;
+  user: User;
+}) => {
+  const dispatch = useDispatch();
+  const { rewards, channelId, balance } = useSelector(
+    (state: RootState) => state.twitch,
+  );
 
   useEffect(() => {
-    setTwitch(getTwitch());
-  }, [channel]);
-
-  useEffect(() => {
-    refreshRewards();
-    const refInterval = setInterval(refreshRewards, 2000);
+    dispatch(
+      getRewardsTwitch({
+        user,
+        channel,
+      }),
+    );
+    const refInterval = setInterval(() => {
+      dispatch(
+        getRewardsTwitch({
+          user,
+          channel,
+        }),
+      );
+    }, 2000);
     return () => {
       clearInterval(refInterval);
     };
-  }, [twitch]);
+  }, [user, channel, dispatch]);
 
-  const sortTable = (localRewards: ICustomReward[]) => {
+  const [sort, setSort] = useState<SORT>(SORT.NONE);
+  const [numberOfRequest, setNumberOfRequest] = useState<number>(1);
+
+  const getTableSorted = (rewards: IReward[]) => {
     switch (sort) {
       case SORT.NAME:
-        return localRewards.sort((a: any, b: any) => a.title.localeCompare(b.title));
+        return [...rewards].sort((a: any, b: any) =>
+          a.title.localeCompare(b.title),
+        );
       case SORT.PRICE:
-        return localRewards.sort((a: any, b: any) => {
+        return [...rewards].sort((a: any, b: any) => {
           if (a.cost < b.cost) return -1;
           if (a.cost > b.cost) return 1;
           return 0;
@@ -63,48 +70,78 @@ const ChannelRewardsView = ({ channel }: { channel: string }) => {
     }
   };
 
-  const rClick = (rewardId: string) => {
-    const reward: any | undefined = rewards.find((value: ICustomReward) => value.id === rewardId);
-    if (!reward) return;
+  const refreshReward = () => {
+    dispatch(
+      getRewardsTwitch({
+        user,
+        channel,
+      }),
+    );
+  };
+
+  const redeemReward = async (rewardId: string) => {
+    const reward: any | undefined = rewards.find(
+      (value: IReward) => value.id === rewardId,
+    );
+    if (!reward || !channelId) return;
 
     for (let i = 0; i < (numberOfRequest || 1); i += 1) {
-      twitch.RedeemReward({
-        rewardID: rewardId,
-        title: reward.title,
-        cost: reward.cost,
-        prompt: reward.prompt,
-      });
+      dispatch(
+        redeemRewardTwitch({
+          user,
+          channel: channelId,
+          redeem: {
+            rewardID: rewardId,
+            title: reward.title,
+            cost: reward.cost,
+            prompt: reward.prompt,
+          },
+        }),
+      );
+      await new Promise((resolve: any) => setTimeout(() => resolve(), 50));
     }
   };
 
   return (
     <>
-      <div className="flex w-full justify-end space-x-4">
-        <input
-          className="bg-gray-800 text-white border-none"
-          type="number"
-          value={numberOfRequest}
-          placeholder="Number of request"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setNumberOfRequest(Number(e.target.value))}
-        />
-        <button type="button" onClick={() => setSort(SORT.NAME)} className="btn-primary">
-          <Name width="20" height="20" />
-        </button>
-        <button type="button" onClick={() => setSort(SORT.PRICE)} className="btn-primary">
-          <Money width="20" height="20" />
-        </button>
-        <button type="button" onClick={refreshRewards} className="btn-primary">
-          <Refresh width="15" height="15" />
-        </button>
+      <div className="flex w-full justify-between">
+        <div className="font-bold text-lg">
+          Rewards
+          {balance && (
+            <span className="ml-2 font-light text-base">{`(Points : ${balance})`}</span>
+          )}
+        </div>
+        <div className="space-x-4">
+          <input
+            type="number"
+            value={numberOfRequest}
+            placeholder="Number of request"
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setNumberOfRequest(Number(e.target.value))
+            }
+          />
+          <button
+            type="button"
+            onClick={() => setSort(SORT.NAME)}
+            className="btn-primary"
+          >
+            <FontAwesomeIcon icon={faA} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSort(SORT.PRICE)}
+            className="btn-primary"
+          >
+            <FontAwesomeIcon icon={faMoneyBill} />
+          </button>
+          <button type="button" onClick={refreshReward} className="btn-primary">
+            <FontAwesomeIcon icon={faRefresh} />
+          </button>
+        </div>
       </div>
       <div className="flex flex-wrap w-full mt-10">
-        {sortTable(rewards).map((v: ICustomReward) => (
-          <Reward
-            id={v.id}
-            key={v.id}
-            reward={v}
-            onClick={rClick}
-          />
+        {getTableSorted(rewards).map((v: IReward) => (
+          <Reward id={v.id} key={v.id} reward={v} onClick={redeemReward} />
         ))}
       </div>
     </>

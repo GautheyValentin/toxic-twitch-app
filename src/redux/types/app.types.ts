@@ -1,4 +1,23 @@
-export interface ICustomReward {
+import { ChatUserstate } from 'tmi.js';
+
+export interface User {
+  id: string;
+  displayName: string;
+  token: string;
+}
+
+export interface Message {
+  user?: ChatUserstate;
+  message: string;
+  isError?: boolean;
+}
+
+export interface TwitchPayload {
+  user: User;
+  channel: string;
+}
+
+export interface IReward {
   id: string;
   backgroundColor: string;
   cooldownExpiresAt?: any;
